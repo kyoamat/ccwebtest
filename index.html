@@ -1,13 +1,694 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍅</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pomodoro Todo</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍅</text></svg>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pomodoro Todo</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
+      font-weight: 400;
+      color-scheme: light dark;
+      color: rgba(255, 255, 255, 0.87);
+      background-color: #1a1a2e;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+    #app {
+      width: 100%;
+      max-width: 500px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .header {
+      text-align: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      background: linear-gradient(135deg, #e94560, #0f3460);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .main { flex: 1; padding: 1rem 0; }
+    section { margin-bottom: 2rem; }
+    section h2 {
+      font-size: 1.2rem;
+      margin: 0 0 1rem 0;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .footer {
+      text-align: center;
+      padding: 1rem 0;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.875rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .footer p { margin: 0; }
+    .timer-display {
+      text-align: center;
+      padding: 2rem;
+      background: linear-gradient(135deg, #16213e, #0f3460);
+      border-radius: 1rem;
+      margin-bottom: 1rem;
+    }
+    .timer-mode {
+      font-size: 1rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+    }
+    .timer-mode.work { color: #e94560; }
+    .timer-mode.break { color: #4ecca3; }
+    .timer-time {
+      font-size: 4rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+      text-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+    }
+    .timer-sessions {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 0.5rem;
+    }
+    .timer-controls {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .timer-btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #16213e;
+      color: rgba(255, 255, 255, 0.87);
+    }
+    .timer-btn:hover {
+      background: #1a2744;
+      transform: translateY(-1px);
+    }
+    .timer-btn-primary {
+      background: #e94560;
+      color: white;
+      min-width: 100px;
+    }
+    .timer-btn-primary:hover { background: #d63d56; }
+    .timer-settings-toggle {
+      display: block;
+      width: 100%;
+      padding: 0.5rem;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 0.5rem;
+      color: rgba(255, 255, 255, 0.6);
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+    .timer-settings-toggle:hover {
+      border-color: rgba(255, 255, 255, 0.4);
+      color: rgba(255, 255, 255, 0.8);
+    }
+    .timer-settings {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 0.5rem;
+    }
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .setting-row:last-child { margin-bottom: 0; }
+    .setting-row label {
+      flex: 1;
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .setting-row input {
+      width: 60px;
+      padding: 0.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 0.25rem;
+      background: #16213e;
+      color: white;
+      font-size: 0.875rem;
+      text-align: center;
+    }
+    .setting-row span {
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+    }
+    .todo-input-container {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .todo-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 0.5rem;
+      background: #16213e;
+      color: white;
+      font-size: 1rem;
+    }
+    .todo-input::placeholder { color: rgba(255, 255, 255, 0.4); }
+    .todo-input:focus {
+      outline: none;
+      border-color: #e94560;
+    }
+    .todo-add-btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: #e94560;
+      color: white;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .todo-add-btn:hover { background: #d63d56; }
+    .todo-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 1rem 0;
+    }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: #16213e;
+      border-radius: 0.5rem;
+      margin-bottom: 0.5rem;
+      transition: all 0.2s;
+    }
+    .todo-item:hover { background: #1a2744; }
+    .todo-item.completed { opacity: 0.6; }
+    .todo-item.completed .todo-text { text-decoration: line-through; }
+    .todo-checkbox {
+      width: 1.25rem;
+      height: 1.25rem;
+      cursor: pointer;
+      accent-color: #e94560;
+    }
+    .todo-text { flex: 1; font-size: 1rem; }
+    .todo-delete-btn {
+      width: 2rem;
+      height: 2rem;
+      padding: 0;
+      border: none;
+      border-radius: 0.25rem;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .todo-delete-btn:hover {
+      background: rgba(233, 69, 96, 0.2);
+      color: #e94560;
+    }
+    .todo-empty {
+      text-align: center;
+      padding: 2rem;
+      color: rgba(255, 255, 255, 0.4);
+      font-style: italic;
+    }
+    .todo-clear-btn {
+      display: block;
+      width: 100%;
+      padding: 0.5rem;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 0.5rem;
+      color: rgba(255, 255, 255, 0.6);
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+    .todo-clear-btn:hover {
+      border-color: #e94560;
+      color: #e94560;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        color: #213547;
+        background-color: #f5f5f5;
+      }
+      .timer-display { background: linear-gradient(135deg, #e8e8e8, #d0d0d0); }
+      .timer-time { color: #213547; text-shadow: none; }
+      .timer-btn { background: #e0e0e0; color: #213547; }
+      .timer-btn:hover { background: #d0d0d0; }
+      .timer-settings { background: rgba(0, 0, 0, 0.05); }
+      .setting-row input { background: white; border-color: rgba(0, 0, 0, 0.2); color: #213547; }
+      .todo-input { background: white; border-color: rgba(0, 0, 0, 0.2); color: #213547; }
+      .todo-item { background: white; }
+      .todo-item:hover { background: #f0f0f0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1>Pomodoro Todo</h1>
+    </header>
+    <main class="main">
+      <section class="timer-section">
+        <h2>Timer</h2>
+        <div id="timer-container"></div>
+      </section>
+      <section class="todo-section">
+        <h2>Tasks</h2>
+        <div id="todo-container"></div>
+      </section>
+    </main>
+    <footer class="footer">
+      <p>Stay focused and productive!</p>
+    </footer>
+  </div>
+
+  <script>
+    (function() {
+      // Storage keys
+      const STORAGE_KEYS = {
+        TODOS: 'pomodoro-todos',
+        TIMER_SETTINGS: 'pomodoro-timer-settings',
+        TIMER_STATE: 'pomodoro-timer-state'
+      };
+
+      const DEFAULT_SETTINGS = {
+        workDuration: 25 * 60,
+        breakDuration: 5 * 60,
+        longBreakDuration: 15 * 60,
+        sessionsBeforeLongBreak: 4
+      };
+
+      // Storage functions
+      function saveTodos(todos) {
+        localStorage.setItem(STORAGE_KEYS.TODOS, JSON.stringify(todos));
+      }
+
+      function loadTodos() {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEYS.TODOS)) || [];
+        } catch { return []; }
+      }
+
+      function saveTimerSettings(settings) {
+        localStorage.setItem(STORAGE_KEYS.TIMER_SETTINGS, JSON.stringify(settings));
+      }
+
+      function loadTimerSettings() {
+        try {
+          return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem(STORAGE_KEYS.TIMER_SETTINGS)) };
+        } catch { return { ...DEFAULT_SETTINGS }; }
+      }
+
+      function saveTimerState(state) {
+        localStorage.setItem(STORAGE_KEYS.TIMER_STATE, JSON.stringify(state));
+      }
+
+      function loadTimerState() {
+        const defaultState = {
+          isRunning: false,
+          isBreak: false,
+          timeRemaining: DEFAULT_SETTINGS.workDuration,
+          sessionsCompleted: 0
+        };
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.TIMER_STATE));
+          return saved ? { ...defaultState, ...saved, isRunning: false } : defaultState;
+        } catch { return defaultState; }
+      }
+
+      // Todo state
+      let todos = loadTodos();
+
+      function addTodo(text) {
+        const trimmed = text.trim();
+        if (!trimmed) return null;
+        const todo = {
+          id: crypto.randomUUID(),
+          text: trimmed,
+          completed: false,
+          createdAt: Date.now()
+        };
+        todos.push(todo);
+        saveTodos(todos);
+        return todo;
+      }
+
+      function toggleTodo(id) {
+        const todo = todos.find(t => t.id === id);
+        if (todo) {
+          todo.completed = !todo.completed;
+          saveTodos(todos);
+          return true;
+        }
+        return false;
+      }
+
+      function deleteTodo(id) {
+        const idx = todos.findIndex(t => t.id === id);
+        if (idx !== -1) {
+          todos.splice(idx, 1);
+          saveTodos(todos);
+          return true;
+        }
+        return false;
+      }
+
+      function clearCompletedTodos() {
+        const before = todos.length;
+        todos = todos.filter(t => !t.completed);
+        saveTodos(todos);
+        return before - todos.length;
+      }
+
+      function renderTodoList(container) {
+        container.innerHTML = '';
+
+        const inputContainer = document.createElement('div');
+        inputContainer.className = 'todo-input-container';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Add a new task...';
+        input.className = 'todo-input';
+
+        const addBtn = document.createElement('button');
+        addBtn.textContent = 'Add';
+        addBtn.className = 'todo-add-btn';
+
+        const listContainer = document.createElement('ul');
+        listContainer.className = 'todo-list';
+
+        function renderItems() {
+          listContainer.innerHTML = '';
+          if (todos.length === 0) {
+            const empty = document.createElement('li');
+            empty.className = 'todo-empty';
+            empty.textContent = 'No tasks yet. Add one above!';
+            listContainer.appendChild(empty);
+            return;
+          }
+          todos.forEach(todo => {
+            const li = document.createElement('li');
+            li.className = 'todo-item' + (todo.completed ? ' completed' : '');
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = todo.completed;
+            checkbox.className = 'todo-checkbox';
+            checkbox.onchange = () => { toggleTodo(todo.id); renderItems(); };
+
+            const text = document.createElement('span');
+            text.className = 'todo-text';
+            text.textContent = todo.text;
+
+            const delBtn = document.createElement('button');
+            delBtn.textContent = '×';
+            delBtn.className = 'todo-delete-btn';
+            delBtn.onclick = () => { deleteTodo(todo.id); renderItems(); };
+
+            li.appendChild(checkbox);
+            li.appendChild(text);
+            li.appendChild(delBtn);
+            listContainer.appendChild(li);
+          });
+        }
+
+        function handleAdd() {
+          if (addTodo(input.value)) {
+            input.value = '';
+            renderItems();
+          }
+        }
+
+        input.onkeypress = e => { if (e.key === 'Enter') handleAdd(); };
+        addBtn.onclick = handleAdd;
+
+        inputContainer.appendChild(input);
+        inputContainer.appendChild(addBtn);
+        container.appendChild(inputContainer);
+        container.appendChild(listContainer);
+
+        const clearBtn = document.createElement('button');
+        clearBtn.textContent = 'Clear Completed';
+        clearBtn.className = 'todo-clear-btn';
+        clearBtn.onclick = () => { clearCompletedTodos(); renderItems(); };
+        container.appendChild(clearBtn);
+
+        renderItems();
+      }
+
+      // Timer state
+      let settings = loadTimerSettings();
+      let state = loadTimerState();
+      if (state.timeRemaining <= 0) state.timeRemaining = settings.workDuration;
+      let timerInterval = null;
+
+      function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+      }
+
+      function isLongBreak() {
+        return state.sessionsCompleted > 0 && state.sessionsCompleted % settings.sessionsBeforeLongBreak === 0;
+      }
+
+      function playSound() {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.value = 800;
+          osc.type = 'sine';
+          gain.gain.value = 0.3;
+          osc.start();
+          setTimeout(() => osc.stop(), 200);
+        } catch {}
+      }
+
+      function showNotification() {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          const msg = state.isBreak ? 'Time for a break!' : 'Break is over. Time to work!';
+          new Notification('Pomodoro Timer', { body: msg });
+        }
+      }
+
+      function renderTimer(container) {
+        container.innerHTML = '';
+
+        const display = document.createElement('div');
+        display.className = 'timer-display';
+
+        const modeLabel = document.createElement('div');
+        const timeDisplay = document.createElement('div');
+        timeDisplay.className = 'timer-time';
+        const sessionsDisplay = document.createElement('div');
+        sessionsDisplay.className = 'timer-sessions';
+
+        display.appendChild(modeLabel);
+        display.appendChild(timeDisplay);
+        display.appendChild(sessionsDisplay);
+        container.appendChild(display);
+
+        const controls = document.createElement('div');
+        controls.className = 'timer-controls';
+
+        const startPauseBtn = document.createElement('button');
+        startPauseBtn.className = 'timer-btn timer-btn-primary';
+
+        const resetBtn = document.createElement('button');
+        resetBtn.textContent = 'Reset';
+        resetBtn.className = 'timer-btn';
+
+        const skipBtn = document.createElement('button');
+        skipBtn.textContent = 'Skip';
+        skipBtn.className = 'timer-btn';
+
+        controls.appendChild(startPauseBtn);
+        controls.appendChild(resetBtn);
+        controls.appendChild(skipBtn);
+        container.appendChild(controls);
+
+        const settingsToggle = document.createElement('button');
+        settingsToggle.textContent = 'Settings';
+        settingsToggle.className = 'timer-settings-toggle';
+        container.appendChild(settingsToggle);
+
+        const settingsPanel = document.createElement('div');
+        settingsPanel.className = 'timer-settings';
+        settingsPanel.style.display = 'none';
+
+        function createSettingRow(label, value, onChange) {
+          const row = document.createElement('div');
+          row.className = 'setting-row';
+          const lbl = document.createElement('label');
+          lbl.textContent = label;
+          const inp = document.createElement('input');
+          inp.type = 'number';
+          inp.min = '1';
+          inp.max = '60';
+          inp.value = Math.floor(value / 60);
+          inp.onchange = () => {
+            const mins = parseInt(inp.value, 10);
+            if (!isNaN(mins) && mins > 0) onChange(mins * 60);
+          };
+          const unit = document.createElement('span');
+          unit.textContent = 'min';
+          row.appendChild(lbl);
+          row.appendChild(inp);
+          row.appendChild(unit);
+          return row;
+        }
+
+        settingsPanel.appendChild(createSettingRow('Work Duration:', settings.workDuration, v => {
+          settings.workDuration = v;
+          saveTimerSettings(settings);
+          if (!state.isRunning && !state.isBreak) { state.timeRemaining = v; saveTimerState(state); updateUI(); }
+        }));
+        settingsPanel.appendChild(createSettingRow('Break Duration:', settings.breakDuration, v => {
+          settings.breakDuration = v;
+          saveTimerSettings(settings);
+        }));
+        settingsPanel.appendChild(createSettingRow('Long Break:', settings.longBreakDuration, v => {
+          settings.longBreakDuration = v;
+          saveTimerSettings(settings);
+        }));
+
+        const sessionsRow = document.createElement('div');
+        sessionsRow.className = 'setting-row';
+        const sessionsLabel = document.createElement('label');
+        sessionsLabel.textContent = 'Sessions before long break:';
+        const sessionsInput = document.createElement('input');
+        sessionsInput.type = 'number';
+        sessionsInput.min = '1';
+        sessionsInput.max = '10';
+        sessionsInput.value = settings.sessionsBeforeLongBreak;
+        sessionsInput.onchange = () => {
+          const val = parseInt(sessionsInput.value, 10);
+          if (!isNaN(val) && val > 0) {
+            settings.sessionsBeforeLongBreak = val;
+            saveTimerSettings(settings);
+          }
+        };
+        sessionsRow.appendChild(sessionsLabel);
+        sessionsRow.appendChild(sessionsInput);
+        settingsPanel.appendChild(sessionsRow);
+
+        container.appendChild(settingsPanel);
+
+        settingsToggle.onclick = () => {
+          settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+        };
+
+        function updateUI() {
+          modeLabel.textContent = state.isBreak ? 'Break Time' : 'Work Time';
+          modeLabel.className = 'timer-mode ' + (state.isBreak ? 'break' : 'work');
+          timeDisplay.textContent = formatTime(state.timeRemaining);
+          sessionsDisplay.textContent = 'Sessions: ' + state.sessionsCompleted;
+          startPauseBtn.textContent = state.isRunning ? 'Pause' : 'Start';
+        }
+
+        function startTimer() {
+          if (state.isRunning) return;
+          state.isRunning = true;
+          saveTimerState(state);
+          timerInterval = setInterval(() => {
+            state.timeRemaining--;
+            if (state.timeRemaining <= 0) {
+              clearInterval(timerInterval);
+              timerInterval = null;
+              state.isRunning = false;
+              if (!state.isBreak) state.sessionsCompleted++;
+              state.isBreak = !state.isBreak;
+              state.timeRemaining = state.isBreak
+                ? (isLongBreak() ? settings.longBreakDuration : settings.breakDuration)
+                : settings.workDuration;
+              playSound();
+              showNotification();
+            }
+            saveTimerState(state);
+            updateUI();
+          }, 1000);
+          updateUI();
+        }
+
+        function pauseTimer() {
+          if (!state.isRunning) return;
+          if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+          state.isRunning = false;
+          saveTimerState(state);
+          updateUI();
+        }
+
+        function resetTimer() {
+          pauseTimer();
+          state.timeRemaining = state.isBreak
+            ? (isLongBreak() ? settings.longBreakDuration : settings.breakDuration)
+            : settings.workDuration;
+          saveTimerState(state);
+          updateUI();
+        }
+
+        function skipToNext() {
+          pauseTimer();
+          if (!state.isBreak) state.sessionsCompleted++;
+          state.isBreak = !state.isBreak;
+          state.timeRemaining = state.isBreak
+            ? (isLongBreak() ? settings.longBreakDuration : settings.breakDuration)
+            : settings.workDuration;
+          saveTimerState(state);
+          updateUI();
+        }
+
+        startPauseBtn.onclick = () => { state.isRunning ? pauseTimer() : startTimer(); };
+        resetBtn.onclick = resetTimer;
+        skipBtn.onclick = skipToNext;
+
+        updateUI();
+      }
+
+      // Init
+      renderTimer(document.getElementById('timer-container'));
+      renderTodoList(document.getElementById('todo-container'));
+
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    })();
+  </script>
+</body>
 </html>
