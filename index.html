@@ -257,6 +257,28 @@
       border-color: #e94560;
       color: #e94560;
     }
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+      #app { padding: 0.5rem; }
+      .header h1 { font-size: 1.5rem; }
+      .timer-display { padding: 1.5rem 1rem; }
+      .timer-time { font-size: 3rem; }
+      .timer-mode { font-size: 0.875rem; }
+      .timer-sessions { font-size: 0.75rem; }
+      .timer-controls { flex-wrap: wrap; }
+      .timer-btn { padding: 0.625rem 1.25rem; font-size: 0.875rem; }
+      .timer-btn-primary { min-width: 80px; }
+      section h2 { font-size: 1.1rem; }
+      .todo-input-container { flex-direction: column; }
+      .todo-add-btn { width: 100%; padding: 0.875rem; }
+      .setting-row { flex-wrap: wrap; gap: 0.25rem; }
+      .setting-row label { flex: 1 1 100%; margin-bottom: 0.25rem; }
+    }
+    @media (max-width: 480px) {
+      .timer-time { font-size: 2.5rem; }
+      .timer-btn { padding: 0.5rem 1rem; font-size: 0.8rem; }
+      .header h1 { font-size: 1.3rem; }
+    }
     @media (prefers-color-scheme: light) {
       :root {
         color: #213547;
@@ -501,10 +523,43 @@
       }
 
       function showNotification() {
+        const title = state.isBreak ? '🎉 Break Time!' : '🍅 Work Time!';
+        const msg = state.isBreak
+          ? 'Time for a break! You earned it.'
+          : 'Break is over. Time to focus!';
+
+        // Try to show browser notification
         if ('Notification' in window && Notification.permission === 'granted') {
-          const msg = state.isBreak ? 'Time for a break!' : 'Break is over. Time to work!';
-          new Notification('Pomodoro Timer', { body: msg });
+          new Notification(title, {
+            body: msg,
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🍅</text></svg>',
+            tag: 'pomodoro-timer',
+            requireInteraction: false
+          });
+        } else if ('Notification' in window && Notification.permission === 'default') {
+          // Request permission if not yet decided
+          Notification.requestPermission().then(permission => {
+            if (permission === 'granted') {
+              new Notification(title, {
+                body: msg,
+                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🍅</text></svg>',
+                tag: 'pomodoro-timer'
+              });
+            }
+          });
         }
+
+        // Visual notification fallback (flash the document title)
+        const originalTitle = document.title;
+        let flashCount = 0;
+        const flashInterval = setInterval(() => {
+          document.title = flashCount % 2 === 0 ? title : originalTitle;
+          flashCount++;
+          if (flashCount >= 6) {
+            clearInterval(flashInterval);
+            document.title = originalTitle;
+          }
+        }, 1000);
       }
 
       function renderTimer(container) {
@@ -607,6 +662,40 @@
         sessionsRow.appendChild(sessionsLabel);
         sessionsRow.appendChild(sessionsInput);
         settingsPanel.appendChild(sessionsRow);
+
+        // Notification permission button
+        if ('Notification' in window) {
+          const notifRow = document.createElement('div');
+          notifRow.className = 'setting-row';
+          notifRow.style.marginTop = '1rem';
+          const notifBtn = document.createElement('button');
+          notifBtn.className = 'timer-settings-toggle';
+
+          function updateNotifButton() {
+            if (Notification.permission === 'granted') {
+              notifBtn.textContent = '✓ Notifications Enabled';
+              notifBtn.style.borderColor = '#4ecca3';
+              notifBtn.style.color = '#4ecca3';
+              notifBtn.disabled = true;
+            } else if (Notification.permission === 'denied') {
+              notifBtn.textContent = '✗ Notifications Blocked';
+              notifBtn.style.borderColor = '#e94560';
+              notifBtn.style.color = '#e94560';
+              notifBtn.disabled = true;
+            } else {
+              notifBtn.textContent = '🔔 Enable Notifications';
+              notifBtn.disabled = false;
+            }
+          }
+
+          notifBtn.onclick = () => {
+            Notification.requestPermission().then(updateNotifButton);
+          };
+
+          updateNotifButton();
+          notifRow.appendChild(notifBtn);
+          settingsPanel.appendChild(notifRow);
+        }
 
         container.appendChild(settingsPanel);
 
